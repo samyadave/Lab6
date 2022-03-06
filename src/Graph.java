@@ -30,12 +30,30 @@ public class Graph {
     public Graph(int n) {
         this.vertices = n;
         this.edges = 0;
-        adj = new ArrayList<>(n);
-        color = new ArrayList<>(n);
-        distance = new ArrayList<>(n);
-        parent = new ArrayList<>(n);
-        discoverTime = new ArrayList<>(n);
-        finishTime = new ArrayList<>(n);
+        this.adj = new ArrayList<>(n + 1);
+        for (int i = 0; i < n + 1; i++) {
+            this.adj.add(new LinkedList<>());
+        }
+        this.color = new ArrayList<>(n + 1);
+        for (int i = 0; i < n + 1; i++) {
+            this.color.add('W');
+        }
+        this.distance = new ArrayList<>(n + 1);
+        for (int i = 0; i < n + 1; i++) {
+            this.distance.add(-1);
+        }
+        this.parent = new ArrayList<>(n + 1);
+        for (int i = 0; i < n + 1; i++) {
+            this.parent.add(0); // should be null I(sam) think
+        }
+        this.discoverTime = new ArrayList<>(n + 1);
+        for (int i = 0; i < n + 1; i++) {
+            this.discoverTime.add(-1);
+        }
+        this.finishTime = new ArrayList<>(n + 1);
+        for (int i = 0; i < n + 1; i++) {
+            this.finishTime.add(-1);
+        }
     }
 
     /*** Accessors ***/
@@ -60,12 +78,11 @@ public class Graph {
 
     /**
      * returns whether the graph is empty (no edges)
-     * AND ALSO DON'T FORGET ABOUT THE VERTICES SMH
      * 
      * @return whether the graph is empty
      */
     public boolean isEmpty() {
-        return (edges == 0 && vertices == 0);
+        return this.edges == 0;
     }
 
     /**
@@ -164,7 +181,7 @@ public class Graph {
      *                                   v is out of bounds
      */
     public LinkedList<Integer> getAdjacencyList(Integer v) throws IndexOutOfBoundsException {
-        if (v < 0 && v > vertices) {
+        if (v <= 0 || v > vertices) {
             throw new IndexOutOfBoundsException(
                     "getAdjacencyList(): Vertex is either negative or is greater than number of vertices!");
         }
@@ -183,10 +200,12 @@ public class Graph {
      *                          u or v is out of bounds
      */
     public void addDirectedEdge(Integer u, Integer v) throws IndexOutOfBoundsException {
-        if (v < 0 && v > vertices && (u < 0 && u > vertices)) {
+        if (v > vertices || u <= 0 || u > vertices || v <= 0) {
             throw new IndexOutOfBoundsException("addDirectedEdge(): Either u or v is out of bounds!"); // yes
         }
+
         this.adj.get(u).addLast(v); // ???
+        this.edges++;
     }
 
     /**
@@ -199,12 +218,13 @@ public class Graph {
      *                                   u or v is out of bounds
      */
     public void addUndirectedEdge(Integer u, Integer v) throws IndexOutOfBoundsException {
-        if (v < 0 && v > vertices && (u < 0 && u > vertices)) {
-            throw new IndexOutOfBoundsException("addDirectedEdge(): Either u or v is out of bounds!"); // yes
+        if (v > vertices || u <= 0 || u > vertices || v <= 0) {
+            throw new IndexOutOfBoundsException("addUndirectedEdge(): Either u or v is out of bounds!"); // yes
         }
 
         this.adj.get(u).addLast(v); // ???
         this.adj.get(v).addLast(u); // ???
+        this.edges++;
     }
 
     /*** Additional Operations ***/
@@ -217,11 +237,11 @@ public class Graph {
     @Override
     public String toString() {
         String str = "";
-        for (int i = 1; i < this.vertices; i++) {
-
+        for (int i = 1; i <= this.vertices; i++) {
+            str += i + ": " + this.adj.get(i).toString();
         }
 
-        return str + "\n";
+        return str;
     }
 
     /**
@@ -234,34 +254,36 @@ public class Graph {
      */
 
     public void BFS(Integer source) throws IndexOutOfBoundsException {
-        if (source < 0 && source > vertices) {
+        if (source <= 0 || source > vertices) {
             throw new IndexOutOfBoundsException(
                     "BFS(): Source is either negative or is greater than number of vertices!");
         }
 
         LinkedList<Integer> queue = new LinkedList<>();
 
-        for (int x = 1; x <= this.vertices; x++) {
-            this.color.add(x, 'W');
-            this.distance.add(x, -1);
-            this.parent.add(x, null);
-        }
-
-        this.color.add(source, 'G');
-        this.distance.add(source, 0);
-        queue.addFirst(source);
+        this.color.set(source, 'G');
+        this.distance.set(source, 0); // default values for source value
+        queue.addFirst(source); // add source onto Queue
         while (!queue.isEmpty()) {
             int x = queue.getFirst();
-            queue.removeFirst();
-            for (int i = 0; i < this.adj.get(x).getLength(); i++) {
-                if (this.color.get(this.adj.get(x).findIndex(i)).equals('W')) {
-                    this.color.set(this.adj.get(x).findIndex(i), 'G');
-                    this.parent.set(this.adj.get(x).findIndex(i), x);
-                    this.distance.set(this.adj.get(x).findIndex(i), this.distance.get(x) + 1);
-                    queue.addLast(this.adj.get(x).findIndex(i));
+
+            queue.removeFirst(); // removing what's in front to left the next value after
+            LinkedList<Integer> currAdjList = this.adj.get(x); // getting adj list of x
+            for (int i = 0; i < currAdjList.getLength(); i++) {
+
+                currAdjList.positionIterator();
+                currAdjList.advanceIteratorToIndex(i); // advances to the current iteration, continuing the for loop
+                int adjNode = currAdjList.getIterator(); // find the adjacent node, by getting the iterator at the index
+                                                         // currently on
+
+                if (this.color.get(adjNode).equals('W')) { // if adj is white
+                    this.color.set(adjNode, 'G');
+                    this.parent.set(adjNode, x);
+                    this.distance.set(adjNode, this.distance.get(x) + 1);
+                    queue.addLast(adjNode);
                 }
             }
-            this.color.set(x, 'B');
+            this.color.set(x, 'B'); // once adj list is looped through, and none of the values are W, we mark x as B
         }
     }
     // for all x in V(G)
@@ -304,29 +326,40 @@ public class Graph {
      * in order of vertex lists
      */
     public void DFS() {
-        /**
-         * FS(G)
-         * 
-         * for all x in V(G)
-         * 
-         * color[x] = W
-         * 
-         * parent[x] = NIL
-         * 
-         * discovery_time[x] = -1
-         * 
-         * finish_time[x] = -1
-         * 
-         * time = 0
-         * 
-         * for all x in V(G)
-         * 
-         * if color[x] == W
-         * 
-         * Visit(x)
-         * 
-         * 
-         * 
+        for (int i = 0; i <= this.vertices; i++) {
+            if (this.color.get(i).equals('W')) {
+                this.visit(i);
+            }
+        }
+    }
+
+    /**
+     * Private recursive helper method for DFS
+     * 
+     * @param vertex the vertex to visit
+     */
+    private void visit(int vertex) {
+        this.color.set(vertex, 'G');
+        this.discoverTime.set(vertex, ++time);
+
+        LinkedList<Integer> currAdjList = this.adj.get(vertex); // getting adj list of x
+        for (int i = 0; i < currAdjList.getLength(); i++) {
+
+            currAdjList.positionIterator();
+            currAdjList.advanceIteratorToIndex(i); // advances to the current iteration, continuing the for loop
+            int adjNode = currAdjList.getIterator(); // find the adjacent node, by getting the iterator at the index
+                                                     // currently on
+
+            if (this.color.get(adjNode).equals('W')) { // if adj is white
+                this.parent.set(adjNode, vertex);
+                this.visit(adjNode);
+            }
+        }
+
+        this.color.set(vertex, 'B');
+        this.finishTime.set(vertex, ++time);
+
+        /*
          * Visit(x)
          * 
          * color[x] = G
@@ -348,15 +381,30 @@ public class Graph {
          * 
          * 
          */
+
     }
 
-    /**
-     * Private recursive helper method for DFS
-     * 
-     * @param vertex the vertex to visit
-     */
-    private void visit(int vertex) {
-
+    public static void main(String[] args) {
+        Graph g1 = new Graph(8);
+        g1.addUndirectedEdge(1, 2);
+        g1.addUndirectedEdge(1, 3);
+        g1.addUndirectedEdge(2, 4);
+        g1.addUndirectedEdge(3, 4);
+        g1.addUndirectedEdge(5, 6);
+        g1.addUndirectedEdge(6, 7);
+        g1.addUndirectedEdge(6, 8);
+        g1.DFS();
+        // for (int index = 1; index < g.getNumVertices(); index++) {
+        // System.out.printf("%d: %d\n", index, g.getDistance(index));
+        // }
+        System.out.println("Discover:");
+        for (int index = 1; index < g1.getNumVertices(); index++) {
+            System.out.printf("%d: %d\n", index, g1.getDiscoverTime(index));
+        }
+        System.out.println("Finnish:");
+        for (int index = 1; index < g1.getNumVertices(); index++) {
+            System.out.printf("%d: %d\n", index, g1.getFinishTime(index));
+        }
     }
 
 }
